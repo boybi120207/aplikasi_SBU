@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SBU — Sistem Pencarian Klasifikasi Konstruksi</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161d;
+    --bg3: #1a1e28;
+    --surface: #1e2330;
+    --surface2: #252a38;
+    --border: #2e3448;
+    --accent: #f5a623;
+    --accent2: #e8863a;
+    --accent-dim: rgba(245,166,35,0.12);
+    --accent-glow: rgba(245,166,35,0.25);
+    --green: #4ade80;
+    --blue: #60a5fa;
+    --purple: #c084fc;
+    --pink: #f472b6;
+    --text: #e8ecf4;
+    --text2: #8892a8;
+    --text3: #545e75;
+    --red: #ff6b6b;
+    --konstruksi: #60a5fa;
+    --spesialis: #4ade80;
+    --konsultan: #c084fc;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: .4;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 0 2rem;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+  }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    display: grid;
+    place-items: center;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: .8rem;
+    color: #000;
+    letter-spacing: -.02em;
+  }
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: .04em;
+    color: var(--text);
+  }
+  .logo-text span { color: var(--accent); }
+
+  .header-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .72rem;
+    color: var(--text3);
+    letter-spacing: .06em;
+  }
+
+  /* HERO SEARCH */
+  .hero {
+    position: relative;
+    z-index: 5;
+    padding: 3rem 2rem 2rem;
+    text-align: center;
+    background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+  }
+
+  .hero-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+    margin-bottom: .5rem;
+  }
+  .hero-title .highlight {
+    color: var(--accent);
+    position: relative;
+  }
+  .hero-subtitle {
+    color: var(--text2);
+    font-size: .95rem;
+    font-weight: 300;
+    margin-bottom: 2rem;
+    letter-spacing: .02em;
+  }
+
+  /* SEARCH BOX */
+  .search-wrapper {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .search-box {
+    position: relative;
+    margin-bottom: 1rem;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    pointer-events: none;
+    font-size: 1.1rem;
+  }
+
+  #searchInput {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3.25rem;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  #searchInput:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+  #searchInput::placeholder { color: var(--text3); }
+
+  /* FILTER TABS */
+  .filter-row {
+    display: flex;
+    gap: .5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: .45rem 1.1rem;
+    border-radius: 99px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .75rem;
+    letter-spacing: .05em;
+    cursor: pointer;
+    transition: all .18s;
+    text-transform: uppercase;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: .75rem;
+  }
+
+  .stats-group {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .72rem;
+    color: var(--text2);
+  }
+  .stat-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .stat-pill strong {
+    color: var(--text);
+    font-size: .9rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+  }
+
+  .result-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .8rem;
+    color: var(--text3);
+  }
+  .result-count span { color: var(--accent); font-weight: 500; }
+
+  /* MAIN CONTENT */
+  .main {
+    position: relative;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 64px - 56px - 110px);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 1.25rem;
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    height: calc(100vh - 240px);
+    overflow-y: auto;
+  }
+
+  .sidebar-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .65rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 1rem;
+  }
+
+  .category-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .6rem .9rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: all .15s;
+    margin-bottom: .3rem;
+    text-align: left;
+  }
+  .category-btn:hover { background: var(--surface); border-color: var(--border); }
+  .category-btn.active { background: var(--accent-dim); border-color: var(--accent); }
+
+  .cat-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: .85rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .category-btn.active .cat-label { color: var(--accent); }
+
+  .cat-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .7rem;
+    color: var(--text3);
+    background: var(--surface2);
+    padding: .1rem .5rem;
+    border-radius: 99px;
+  }
+  .category-btn.active .cat-count {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .sidebar-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1rem 0;
+  }
+
+  /* RESULTS */
+  .results-area {
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1rem;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: transform .18s, border-color .18s, box-shadow .18s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 12px 12px 0 0;
+  }
+  .card.type-konstruksi::before { background: var(--konstruksi); }
+  .card.type-spesialis::before { background: var(--spesialis); }
+  .card.type-konsultan::before { background: var(--konsultan); }
+
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--surface2);
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: .75rem;
+    gap: .5rem;
+  }
+
+  .card-kbli {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .75rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: .2rem .6rem;
+    border-radius: 4px;
+    letter-spacing: .04em;
+    white-space: nowrap;
+  }
+
+  .card-type-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .65rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: .2rem .55rem;
+    border-radius: 4px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-konstruksi { background: rgba(96,165,250,.15); color: var(--konstruksi); }
+  .badge-spesialis { background: rgba(74,222,128,.15); color: var(--spesialis); }
+  .badge-konsultan { background: rgba(192,132,252,.15); color: var(--konsultan); }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: .92rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.35;
+    margin-bottom: .6rem;
+    letter-spacing: -.01em;
+  }
+
+  .card-code-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .75rem;
+  }
+
+  .card-subkode {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .78rem;
+    color: var(--text2);
+    background: var(--bg3);
+    padding: .15rem .55rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .card-section {
+    margin-bottom: .5rem;
+  }
+  .card-section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .6rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text3);
+    margin-bottom: .25rem;
+  }
+  .card-section-value {
+    font-size: .8rem;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    margin-top: .6rem;
+  }
+  .tag {
+    font-size: .68rem;
+    padding: .15rem .5rem;
+    border-radius: 4px;
+    background: var(--bg3);
+    color: var(--text3);
+    border: 1px solid var(--border);
+    font-family: 'IBM Plex Sans', sans-serif;
+    transition: color .15s, border-color .15s;
+  }
+  .tag:hover { color: var(--text2); border-color: var(--text3); }
+
+  /* EMPTY STATE */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    grid-column: 1 / -1;
+  }
+  .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: .4; }
+  .empty-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: .4rem;
+  }
+  .empty-sub { font-size: .85rem; color: var(--text3); }
+
+  /* HIGHLIGHT */
+  mark {
+    background: var(--accent);
+    color: #000;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border); }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; display: flex; flex-wrap: wrap; gap: .4rem; padding: 1rem; border-right: none; border-bottom: 1px solid var(--border); }
+    .sidebar-title { width: 100%; margin-bottom: .4rem; }
+    .category-btn { width: auto; flex: 0 0 auto; }
+    .results-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card { animation: fadeUp .3s ease both; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">SBU</div>
+    <div class="logo-text">SBU <span></span></div>
+  </div>
+  <div class="header-meta">SISTEM KLASIFIKASI BADAN USAHA JASA KONSTRUKSI</div>
+</header>
+
+<!-- HERO + SEARCH -->
+<div class="hero">
+  <h1 class="hero-title">Cari <span class="highlight">Klasifikasi SBU</span><br>Indonesia</h1>
+  <p class="hero-subtitle">Temukan kode KBLI, sub bidang, dan sub klasifikasi yang dibutuhkan dengan mudah</p>
+  <div class="search-wrapper">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Cari kode KBLI, nama sub bidang, atau sub klasifikasi...">
+    </div>
+    <div class="filter-row">
+      <button class="filter-btn active" data-filter="all">Semua</button>
+      <button class="filter-btn" data-filter="kbli">Kode KBLI</button>
+      <button class="filter-btn" data-filter="subbidang">Sub Bidang</button>
+      <button class="filter-btn" data-filter="subklasifikasi">Sub Klasifikasi</button>
+    </div>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stats-group">
+    <div class="stat-pill">
+      <div class="stat-dot" style="background:var(--konstruksi)"></div>
+      <span>Konstruksi</span>
+      <strong id="countKonstruksi">-</strong>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-dot" style="background:var(--spesialis)"></div>
+      <span>Spesialis</span>
+      <strong id="countSpesialis">-</strong>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-dot" style="background:var(--konsultan)"></div>
+      <span>Konsultan</span>
+      <strong id="countKonsultan">-</strong>
+    </div>
+  </div>
+  <div class="result-count">Menampilkan <span id="resultCount">0</span> dari <span id="totalCount">0</span> data</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Kategori SBU</div>
+    <button class="category-btn active" data-cat="all">
+      <span class="cat-label">Semua Kategori</span>
+      <span class="cat-count" id="catAll">0</span>
+    </button>
+    <button class="category-btn" data-cat="konstruksi">
+      <span class="cat-label">🔵 Konstruksi</span>
+      <span class="cat-count" id="catKonstruksi">0</span>
+    </button>
+    <button class="category-btn" data-cat="spesialis">
+      <span class="cat-label">🟢 Spesialis</span>
+      <span class="cat-count" id="catSpesialis">0</span>
+    </button>
+    <button class="category-btn" data-cat="konsultan">
+      <span class="cat-label">🟣 Konsultan</span>
+      <span class="cat-count" id="catKonsultan">0</span>
+    </button>
+    <hr class="sidebar-divider">
+    <div class="sidebar-title">Sub Bidang Cepat</div>
+    <div id="quickFilters"></div>
+  </aside>
+
+  <!-- RESULTS -->
+  <main class="results-area">
+    <div class="results-grid" id="resultsGrid"></div>
+  </main>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const data = [
+  // === SBU KONSTRUKSI ===
+  {type:'konstruksi', kbli:'41011', subbidang:'GEDUNG HUNIAN', kode:'BG001', klasifikasi:'ARSITEKTUR / SIPIL = Arsitektural / Gedung (ASEAN ARCHITECT / ACPE)', subklas:'Arsitektural / Gedung'},
+  {type:'konstruksi', kbli:'41012', subbidang:'GEDUNG PERKANTORAN', kode:'BG002', klasifikasi:'ARSITEKTUR / SIPIL = Arsitektural / Gedung (ASEAN ARCHITECT / ACPE)', subklas:'Arsitektural / Gedung'},
+  {type:'konstruksi', kbli:'41013', subbidang:'GEDUNG INDUSTRI', kode:'BG003', klasifikasi:'ARSITEKTUR / SIPIL = Arsitektural / Gedung (ASEAN ARCHITECT / ACPE)', subklas:'Arsitektural / Gedung'},
+  {type:'konstruksi', kbli:'41014', subbidang:'GEDUNG PERBELANJAAN', kode:'BG004', klasifikasi:'ARSITEKTUR / SIPIL = Arsitektural / Gedung (ASEAN ARCHITECT / ACPE)', subklas:'Arsitektural / Gedung'},
+  {type:'konstruksi', kbli:'41015', subbidang:'GEDUNG KESEHATAN', kode:'BG005', klasifikasi:'ARSITEKTUR / SIPIL = Arsitektural / Gedung (ASEAN ARCHITECT / ACPE)', subklas:'Arsitektural / Gedung'},
+  {type:'konstruksi', kbli:'41016', subbidang:'GEDUNG PENDIDIKAN', kode:'BG006', klasifikasi:'ARSITEKTUR / SIPIL = Arsitektural / Gedung (ASEAN ARCHITECT / ACPE)', subklas:'Arsitektural / Gedung'},
+  {type:'konstruksi', kbli:'41017', subbidang:'GEDUNG PENGINAPAN', kode:'BG007', klasifikasi:'ARSITEKTUR / SIPIL = Arsitektural / Gedung (ASEAN ARCHITECT / ACPE)', subklas:'Arsitektural / Gedung'},
+  {type:'konstruksi', kbli:'41018', subbidang:'GEDUNG TEMPAT HIBURAN & OLAHRAGA', kode:'BG008', klasifikasi:'ARSITEKTUR / SIPIL = Arsitektural / Gedung (ASEAN ARCHITECT / ACPE)', subklas:'Arsitektural / Gedung'},
+  {type:'konstruksi', kbli:'41019', subbidang:'GEDUNG LAINNYA', kode:'BG009', klasifikasi:'ARSITEKTUR / SIPIL = Arsitektural / Gedung (ASEAN ARCHITECT / ACPE)', subklas:'Arsitektural / Gedung'},
+  {type:'konstruksi', kbli:'42101', subbidang:'BANGUNAN SIPIL JALAN', kode:'BS001', klasifikasi:'SIPIL (ACPE)', subklas:'Jalan / Landasan Udara'},
+  {type:'konstruksi', kbli:'42102', subbidang:'BANGUNAN SIPIL JEMBATAN, JALAN LAYANG, FLY OVER & UNDERPASS', kode:'BS002', klasifikasi:'SIPIL / MEKANIKAL (ACPE)', subklas:'Jembatan / Geoteknik & Pondasi / Geodesi / Teknik Lifting'},
+  {type:'konstruksi', kbli:'42103', subbidang:'JALAN REL', kode:'BS003', klasifikasi:'SIPIL (ACPE)', subklas:'Jalan Rel / Geodesi'},
+  {type:'konstruksi', kbli:'42201', subbidang:'JARINGAN IRIGASI & DRAINASE', kode:'BS004', klasifikasi:'SIPIL (ACPE)', subklas:'Irigasi & Rawa / Drainase Perkotaan'},
+  {type:'konstruksi', kbli:'42202', subbidang:'BANGUNAN SIPIL PENGOLAHAN AIR BERSIH', kode:'BS005', klasifikasi:'SIPIL / TATA LINGKUNGAN (ACPE)', subklas:'Air Tanah & Air Baku / Bangunan Air Minum / Teknik Air Minum / Teknik Perpipaan'},
+  {type:'konstruksi', kbli:'42203', subbidang:'BANGUNAN SIPIL PRASARANA & SARANA SISTEM PENGOLAHAN LIMBAH PADAT, CAIR & GAS', kode:'BS006', klasifikasi:'SIPIL / TATA LINGKUNGAN (ACPE)', subklas:'Bangunan Air Limbah / Bangunan Persampahan / Teknik Air Limbah / Teknik Perpipaan / Teknik Persampahan'},
+  {type:'konstruksi', kbli:'42204', subbidang:'BANGUNAN SIPIL ELEKTRIKAL', kode:'BS007', klasifikasi:'SIPIL / MANAJEMEN PELAKSANAAN (ACPE)', subklas:'Geoteknik & Pondasi / Geodesi / Bangunan Menara / Manajemen Konstruksi / Manajemen Proyek / Estimasi Biaya Konstruksi'},
+  {type:'konstruksi', kbli:'42205', subbidang:'BANGUNAN SIPIL TELEKOMUNIKASI UNTUK PRASARANA TRANSPORTASI', kode:'BS008', klasifikasi:'SIPIL / MANAJEMEN PELAKSANAAN (ACPE)', subklas:'Geoteknik & Pondasi / Bangunan Menara / Manajemen Konstruksi / Manajemen Proyek'},
+  {type:'konstruksi', kbli:'42206', subbidang:'SENTRAL TELEKOMUNIKASI', kode:'BS009', klasifikasi:'SIPIL / MANAJEMEN PELAKSANAAN (ACPE)', subklas:'Gedung / Geoteknik & Pondasi / Bangunan Menara / Manajemen Konstruksi / Manajemen Proyek'},
+  {type:'konstruksi', kbli:'42911', subbidang:'BANGUNAN PRASARANA SUMBER DAYA AIR', kode:'BS010', klasifikasi:'SIPIL (ACPE)', subklas:'Bendung & Bendungan / Sungai & Pantai / Air Tanah & Air Baku'},
+  {type:'konstruksi', kbli:'42912', subbidang:'BANGUNAN PELABUHAN BUKAN PERIKANAN', kode:'BS011', klasifikasi:'SIPIL (ACPE)', subklas:'Bangunan Pelabuhan / Sungai & Pantai / Geoteknik & Pondasi'},
+  {type:'konstruksi', kbli:'42913', subbidang:'BANGUNAN PELABUHAN PERIKANAN', kode:'BS012', klasifikasi:'SIPIL (ACPE)', subklas:'Bangunan Pelabuhan / Sungai & Pantai / Geoteknik & Pondasi'},
+  {type:'konstruksi', kbli:'42915', subbidang:'BANGUNAN SIPIL MINYAK DAN GAS BUMI', kode:'BS013', klasifikasi:'SIPIL / MEKANIKAL / MANAJEMEN PELAKSANAAN (ACPE)', subklas:'Geoteknik & Pondasi / Bangunan Lepas Pantai / Teknik Mekanikal / Keselamatan Konstruksi / Manajemen Konstruksi / Manajemen Proyek'},
+  {type:'konstruksi', kbli:'42916', subbidang:'BANGUNAN SIPIL PERTAMBANGAN', kode:'BS014', klasifikasi:'SIPIL / TATA LINGKUNGAN / SAINS & REKAYASA TEKNIK (ACPE)', subklas:'Geoteknik & Pondasi / Grouting / Teknik Lingkungan / Peledakan'},
+  {type:'konstruksi', kbli:'42917', subbidang:'BANGUNAN SIPIL PANAS BUMI', kode:'BS015', klasifikasi:'SIPIL / MEKANIKAL / TATA LINGKUNGAN (ACPE)', subklas:'Geoteknik & Pondasi / Proteksi Kebakaran / Teknik Mekanikal / Teknik Lingkungan'},
+  {type:'konstruksi', kbli:'42918', subbidang:'BANGUNAN SIPIL FASILITAS OLAH RAGA', kode:'BS016', klasifikasi:'SIPIL / MEKANIKAL / MANAJEMEN PELAKSANAAN / ARSITEKTUR LANSKAP (ACPE)', subklas:'Geodesi / Plambing & Pompa Mekanik / Teknik Mekanikal / Manajemen Konstruksi / Manajemen Proyek / Arsitektur Lanskap'},
+  {type:'konstruksi', kbli:'42919', subbidang:'BANGUNAN SIPIL LAINNYA YTDL', kode:'BS017', klasifikasi:'SIPIL / MEKANIKAL / TATA LINGKUNGAN (ACPE)', subklas:'Geoteknik & Pondasi / Teknik Mekanikal / Teknik Lingkungan / Teknik Air Limbah / Teknik Perpipaan'},
+  {type:'konstruksi', kbli:'42923', subbidang:'BANGUNAN SIPIL FASILITAS PENGOLAHAN PRODUK KIMIA, PETROKIMIA, FARMASI & INDUSTRI', kode:'BS018', klasifikasi:'SIPIL / MEKANIKAL / TATA LINGKUNGAN (ACPE)', subklas:'Geoteknik & Pondasi / Teknik Mekanikal / Teknik Lingkungan / Teknik Air Limbah / Teknik Perpipaan'},
+  {type:'konstruksi', kbli:'42924', subbidang:'BANGUNAN SIPIL FASILITAS MILITER & PELUNCURAN SATELIT', kode:'BS019', klasifikasi:'SIPIL / TATA LINGKUNGAN / MANAJEMEN PELAKSANAAN (ACPE)', subklas:'Geoteknik & Pondasi / Bangunan Menara / Teknik Lingkungan / Manajemen Konstruksi / Manajemen Proyek'},
+  {type:'konstruksi', kbli:'42209', subbidang:'JARINGAN IRIGASI, KOMUNIKASI & LIMBAH LAINNYA', kode:'BS020', klasifikasi:'TATA LINGKUNGAN / MANAJEMEN PELAKSANAAN / ARSITEK LANSKAP & DESAIN INTERIOR / PERENCANAAN WILAYAH & KOTA (ACPE)', subklas:'Teknik Lingkungan / Manajemen Konstruksi / Manajemen Proyek / Arsitek Lanskap / Teknik Iluminasi / Perancangan Kota'},
+
+  // === SBU SPESIALIS ===
+  {type:'spesialis', kbli:'43110', subbidang:'PEMBONGKARAN BANGUNAN', kode:'PL001', klasifikasi:'SIPIL / SAINS & REKAYASA TEKNIK / ACPE', subklas:'Pembongkaran Bangunan / Peledakan'},
+  {type:'spesialis', kbli:'42914', subbidang:'PENGERUKAN', kode:'PL002', klasifikasi:'SIPIL / ACPE', subklas:'Bendung & Bendungan / Irigasi & Rawa / Drainase Perkotaan / Bangunan Pelabuhan / Sungai & Pantai'},
+  {type:'spesialis', kbli:'43120', subbidang:'PENYIAPAN LAHAN KONSTRUKSI', kode:'PL003', klasifikasi:'SIPIL / SAINS & REKAYASA TEKNIK / ACPE', subklas:'Geoteknik & Pondasi / Geodesi / Peledakan'},
+  {type:'spesialis', kbli:'43120', subbidang:'PEKERJAAN TANAH', kode:'PL004', klasifikasi:'SIPIL / ACPE', subklas:'Geoteknik & Pondasi / Geodesi'},
+  {type:'spesialis', kbli:'42207', subbidang:'PEMBUATAN / PENGEBORAN SUMUR AIR TANAH', kode:'PL005', klasifikasi:'SIPIL / ACPE', subklas:'Air Tanah & Air Baku / Geoteknik & Pondasi'},
+  {type:'spesialis', kbli:'43120', subbidang:'PELAKSANA PEKERJAAN UTILITAS', kode:'PL006', klasifikasi:'SIPIL / MEKANIKAL / TATA LINGKUNGAN / ACPE', subklas:'Geoteknik & Pondasi / Teknik Mekanikal / Teknik Perpipaan'},
+  {type:'spesialis', kbli:'43120', subbidang:'SURVEI PENYELIDIKAN LAPANGAN', kode:'PL007', klasifikasi:'SIPIL / ACPE', subklas:'Geoteknik & Pondasi / Geodesi / Testing & Analisis Teknik'},
+  {type:'spesialis', kbli:'43902', subbidang:'PEMASANGAN PERANCAH (STEIGER)', kode:'PL008', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Gedung / Jembatan / Bangunan Menara / Teknik Mekanikal'},
+  {type:'spesialis', kbli:'43905', subbidang:'PENYEWAAN PERALATAN KONSTRUKSI', kode:'PA001', klasifikasi:'MEKANIKAL / ACPE', subklas:'Teknik Mekanikal / Alat Berat'},
+  {type:'spesialis', kbli:'43901', subbidang:'PONDASI KONSTRUKSI', kode:'KK001', klasifikasi:'SIPIL / ACPE', subklas:'Geoteknik & Pondasi / Bangunan Lepas Pantai'},
+  {type:'spesialis', kbli:'42921', subbidang:'RESERVOIR PEMBANGKIT LISTRIK TENAGA AIR', kode:'KK002', klasifikasi:'SIPIL / ACPE', subklas:'Bendung & Bendungan / Air Tanah & Air Baku / Geoteknik & Pondasi'},
+  {type:'spesialis', kbli:'42921', subbidang:'INTAKE, CONTROL GATE, PENSTOCK & OUTFLOW PEMBANGKIT LISTRIK TENAGA AIR', kode:'KK003', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Terowongan / Bendung & Bendungan / Air Tanah & Air Baku / Geoteknik & Pondasi / Teknik Mekanikal'},
+  {type:'spesialis', kbli:'42922', subbidang:'PELINDUNG PANTAI', kode:'KK004', klasifikasi:'SIPIL / ACPE', subklas:'Sungai & Pantai / Bangunan Pelabuhan / Bangunan Lepas Pantai'},
+  {type:'spesialis', kbli:'43909', subbidang:'PEKERJAAN LAPIS PERKERASAN BETON (RIGID PAVEMENT)', kode:'KK005', klasifikasi:'SIPIL / ACPE', subklas:'Jalan'},
+  {type:'spesialis', kbli:'43909', subbidang:'PEKERJAAN KONSTRUKSI KEDAP AIR, MINYAK DAN GAS', kode:'KK006', klasifikasi:'MEKANIKAL / ACPE', subklas:'Teknik Mekanikal'},
+  {type:'spesialis', kbli:'43302', subbidang:'PEKERJAAN KONSTRUKSI KEDAP SUARA', kode:'KK007', klasifikasi:'SIPIL / ACPE', subklas:'Gedung'},
+  {type:'spesialis', kbli:'43909', subbidang:'PERKERASAN ASPAL', kode:'KK008', klasifikasi:'SIPIL / ACPE', subklas:'Jalan'},
+  {type:'spesialis', kbli:'43909', subbidang:'PERKERASAN BERBUTIR', kode:'KK009', klasifikasi:'SIPIL / ACPE', subklas:'Jalan'},
+  {type:'spesialis', kbli:'43909', subbidang:'PENGEBORAN & INJEKSI SEMEN BERTEKANAN (DRILLING AND GROUTING)', kode:'KK010', klasifikasi:'SIPIL / ACPE', subklas:'Grouting'},
+  {type:'spesialis', kbli:'43903', subbidang:'PEMASANGAN RANGKA & ATAP / ROOF COVERING', kode:'KK011', klasifikasi:'SIPIL / ACPE', subklas:'Gedung'},
+  {type:'spesialis', kbli:'43909', subbidang:'PEKERJAAN STRUKTUR BETON', kode:'KK012', klasifikasi:'SIPIL / ACPE', subklas:'Gedung / Jembatan / Terowongan'},
+  {type:'spesialis', kbli:'43909', subbidang:'KONSTRUKSI STRUKTUR BETON PASCATARIK (POST TENSIONED)', kode:'KK013', klasifikasi:'SIPIL / ACPE', subklas:'Gedung / Jembatan'},
+  {type:'spesialis', kbli:'42104', subbidang:'KONSTRUKSI TEROWONGAN', kode:'KK014', klasifikasi:'SIPIL / ACPE', subklas:'Terowongan / Geoteknik & Pondasi'},
+  {type:'spesialis', kbli:'43909', subbidang:'PEKERJAAN KONSTRUKSI TAHAN API (TANUR, ANNEALING, FLARE / INCINERATOR)', kode:'KK015', klasifikasi:'MEKANIKAL / TATA LINGKUNGAN / ACPE', subklas:'Proteksi Kebakaran / Teknik Persampahan'},
+  {type:'spesialis', kbli:'43904', subbidang:'PEMASANGAN KERANGKA BAJA', kode:'KK016', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Gedung / Jembatan / Bangunan Menara / Teknik Lifting'},
+  {type:'spesialis', kbli:'41020', subbidang:'PEKERJAAN PRAPABRIKASI BANGUNAN GEDUNG', kode:'KP001', klasifikasi:'SIPIL / ACPE', subklas:'Gedung / Material / Geoteknik & Pondasi'},
+  {type:'spesialis', kbli:'42930', subbidang:'PEKERJAAN KONSTRUKSI PRAPABRIKASI BANGUNAN SIPIL', kode:'KP002', klasifikasi:'SIPIL / ACPE', subklas:'Material / Jalan / Jembatan / Landasan Udara / Bangunan Air Minum / Bangunan Air Limbah / Drainase Perkotaan / Geoteknik & Pondasi / Jalan Rel / Bangunan Pelabuhan'},
+  {type:'spesialis', kbli:'43291', subbidang:'INSTALASI MEKANIKAL', kode:'IN001', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Proteksi Kebakaran / Transportasi Dalam Gedung / Teknik Mekanikal / Teknik Lifting / Gedung'},
+  {type:'spesialis', kbli:'43212', subbidang:'INSTALASI TELEKOMUNIKASI', kode:'IN002', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Gedung / Bangunan Menara / Teknik Mekanikal'},
+  {type:'spesialis', kbli:'43299', subbidang:'INSTALASI PERALATAN INFRASTRUKTUR PERTAMBANGAN & MANUFAKTUR', kode:'IN003', klasifikasi:'SIPIL / MEKANIKAL / TATA LINGKUNGAN / ACPE', subklas:'Geoteknik & Pondasi / Bangunan Lepas Pantai / Teknik Mekanikal / Teknik Perpipaan'},
+  {type:'spesialis', kbli:'43223', subbidang:'INSTALASI MINYAK & GAS', kode:'IN004', klasifikasi:'SIPIL / MEKANIKAL / MANAJEMEN PELAKSANAAN / ACPE', subklas:'Geoteknik & Pondasi / Bangunan Lepas Pantai / Teknik Mekanikal / Keselamatan Konstruksi'},
+  {type:'spesialis', kbli:'43214', subbidang:'INSTALASI KONSTRUKSI NAVIGASI LAUT, SUNGAI & UDARA', kode:'IN005', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Bangunan Menara / Bangunan Lepas Pantai / Teknik Mekanikal'},
+  {type:'spesialis', kbli:'43213', subbidang:'INSTALASI ELEKTRONIKA', kode:'IN006', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Geoteknik & Pondasi / Bangunan Menara / Teknik Mekanikal'},
+  {type:'spesialis', kbli:'43221', subbidang:'INSTALASI SALURAN AIR (PLUMBING)', kode:'IN007', klasifikasi:'SIPIL / MEKANIKAL / TATA LINGKUNGAN / ACPE', subklas:'Gedung / Plumbing & Pompa Mekanik / Teknik Perpipaan'},
+  {type:'spesialis', kbli:'43224', subbidang:'INSTALASI PENDINGIN & VENTILASI UDARA', kode:'IN008', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Gedung / Teknik Tata Udara & Refrigasi / Teknik Mekanikal'},
+  {type:'spesialis', kbli:'43224', subbidang:'INSTALASI PENDINGIN & VENTILASI UDARA (LAINNYA)', kode:'IN009', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Gedung / Teknik Tata Udara & Refrigasi / Teknik Mekanikal'},
+  {type:'spesialis', kbli:'43299', subbidang:'INSTALASI PENGOLAHAN AIR UNTUK PEMBANGKIT LISTRIK', kode:'IN010', klasifikasi:'SIPIL / MEKANIKAL / TATA LINGKUNGAN / ACPE', subklas:'Air Tanah & Air Baku / Bangunan Air Minum / Geoteknik & Pondasi / Testing & Analisa Teknik / Bangunan Lepas Pantai / Teknik Mekanikal / Teknik Perpipaan'},
+  {type:'spesialis', kbli:'43216', subbidang:'INSTALASI SINYAL & RAMBU-RAMBU JALAN RAYA', kode:'IN011', klasifikasi:'SIPIL / ACPE', subklas:'Jalan'},
+  {type:'spesialis', kbli:'43215', subbidang:'INSTALASI SINYAL & TELEKOMUNIKASI KERETA API', kode:'IN012', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Geoteknik & Pondasi / Jalan Rel / Bangunan Menara / Teknik Mekanikal'},
+  {type:'spesialis', kbli:'43222', subbidang:'INSTALASI PEMANAS & GEOTERMAL', kode:'IN013', klasifikasi:'SIPIL / MEKANIKAL / TATA LINGKUNGAN / ACPE', subklas:'Gedung / Proteksi Kebakaran / Teknik Mekanikal / Teknik Perpipaan'},
+  {type:'spesialis', kbli:'43292', subbidang:'INSTALASI METEOROLOGI, KLIMATOLOGI & GEOFISIKA', kode:'IN014', klasifikasi:'SIPIL / MEKANIKAL / ACPE', subklas:'Geoteknik & Pondasi / Bangunan Menara / Teknik Mekanikal'},
+  {type:'spesialis', kbli:'43301', subbidang:'PEMASANGAN KACA & ALUMINIUM', kode:'PB001', klasifikasi:'SIPIL / ACPE', subklas:'Gedung'},
+  {type:'spesialis', kbli:'43301', subbidang:'PEMASANGAN KACA & ALUMINIUM (B)', kode:'PB002', klasifikasi:'SIPIL / ACPE', subklas:'Gedung'},
+  {type:'spesialis', kbli:'43302', subbidang:'PEKERJAAN LANTAI, DINDING, PERALATAN SANITER & PLAFON', kode:'PB003', klasifikasi:'SIPIL / ACPE', subklas:'Gedung'},
+  {type:'spesialis', kbli:'43304', subbidang:'DEKORASI INTERIOR', kode:'PB004', klasifikasi:'ARSITEKTUR / SIPIL / ARSITEKTUR LANSKAP, ILUMINASI & DESAIN INTERIOR', subklas:'Arsitektural / Gedung / Teknik Iluminasi / Desain Interior'},
+  {type:'spesialis', kbli:'43304', subbidang:'PEMASANGAN ORNAMEN & PEKERJAAN SENI PADA PERMUKAAN DINDING / KOLOM / PLAFON', kode:'PB005', klasifikasi:'ARSITEKTUR / SIPIL / ARSITEKTUR LANSKAP, ILUMINASI & DESAIN INTERIOR / ASEAN Architect / ACPE', subklas:'Arsitektural / Gedung / Teknik Iluminasi / Desain Interior'},
+  {type:'spesialis', kbli:'43304', subbidang:'PEMASANGAN ORNAMEN & PEKERJAAN SENI', kode:'PB006', klasifikasi:'ARSITEKTUR / SIPIL / ARSITEKTUR LANSKAP / ASEAN Architect / ACPE', subklas:'Arsitektural / Gedung / Teknik Iluminasi / Desain Interior'},
+  {type:'spesialis', kbli:'43303', subbidang:'PENGECATAN', kode:'PB007', klasifikasi:'SIPIL / ACPE', subklas:'Gedung'},
+  {type:'spesialis', kbli:'43303', subbidang:'PENGECATAN (B)', kode:'PB008', klasifikasi:'SIPIL / ACPE', subklas:'Gedung'},
+  {type:'spesialis', kbli:'43309', subbidang:'PEMBERSIHAN & PERAPIHAN BANGUNAN GEDUNG & BANGUNAN SIPIL', kode:'PB009', klasifikasi:'SIPIL / ARSITEKTUR LANSKAP, ILUMINASI & DESAIN INTERIOR / ASEAN Architect / ACPE', subklas:'Gedung / Desain Interior'},
+  {type:'spesialis', kbli:'43305', subbidang:'PEKERJAAN LANSKAP, PERTAMANAN & PENANAMAN VEGETASI', kode:'PB010', klasifikasi:'ARSITEKTUR LANSKAP, ILUMINASI & DESAIN INTERIOR / ASEAN Architect / ACPE', subklas:'Arsitektur Lanskap'},
+  {type:'spesialis', kbli:'43909', subbidang:'PEMULIHAN LAHAN PEKERJAAN KONSTRUKSI', kode:'PB011', klasifikasi:'TATA LINGKUNGAN / ACPE', subklas:'Teknik Lingkungan'},
+
+  // === SBU KONSULTAN ===
+  {type:'konsultan', kbli:'71101', subbidang:'JASA ARSITEKTURAL BANGUNAN GEDUNG HUNIAN & NON HUNIAN', kode:'AR001', klasifikasi:'ARSITEKTUR / SIPIL / MEKANIKAL / MANAJEMEN PELAKSANAAN / Asean Architect / ACPE', subklas:'Arsitektural / Gedung / Plumbing & Pompa Mekanik / Transportasi Dalam Gedung / Teknik Mekanikal / Manajemen Konstruksi / Manajemen Proyek / Estimasi Biaya Konstruksi'},
+  {type:'konsultan', kbli:'71101', subbidang:'JASA ARSITEKTURAL LAINNYA', kode:'AR002', klasifikasi:'ARSITEKTUR / SIPIL / MANAJEMEN PELAKSANAAN / ARSITEKTUR LANSKAP / Asean Architect / ACPE', subklas:'Arsitektural / Gedung / Manajemen Konstruksi / Manajemen Proyek / Estimasi Biaya Konstruksi / Desain Interior'},
+  {type:'konsultan', kbli:'74120', subbidang:'JASA DESAIN INTERIOR PADA BANGUNAN GEDUNG & BANGUNAN SIPIL', kode:'AR003', klasifikasi:'ARSITEKTUR / SIPIL / ARSITEKTUR LANSKAP, ILUMINASI & DESAIN INTERIOR / ACPE', subklas:'Arsitektural / Gedung / Teknik Iluminasi / Desain Interior'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA REKAYASA KONSTRUKSI BANGUNAN GEDUNG HUNIAN & NON HUNIAN', kode:'RK001', klasifikasi:'ARSITEKTUR / SIPIL / MEKANIKAL / TATA LINGKUNGAN / MANAJEMEN PELAKSANAAN / ACPE', subklas:'Arsitektural / Gedung / Geoteknik & Pondasi / Teknik Tata Udara & Refrigasi / Plumbing & Pompa Mekanik / Teknik Mekanikal / Teknik Perpipaan / Manajemen Konstruksi / Manajemen Proyek / Estimasi Biaya Konstruksi'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA REKAYASA PEKERJAAN TEKNIK SIPIL SUMBER DAYA AIR', kode:'RK002', klasifikasi:'SIPIL / TATA LINGKUNGAN / ACPE', subklas:'Terowongan / Bendung & Bendungan / Irigasi & Rawa / Sungai & Pantai / Air Tanah & Air Baku / Drainase Perkotaan / Geoteknik & Pondasi / Bangunan Pelabuhan / Bangunan Lepas Pantai / Grouting / Teknik Lingkungan'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA REKAYASA PEKERJAAN TEKNIK SIPIL TRANSPORTASI', kode:'RK003', klasifikasi:'SIPIL / ACPE', subklas:'Material / Jalan / Jembatan / Landasan Udara / Terowongan / Geoteknik & Pondasi / Geodesi'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA REKAYASA PEKERJAAN MEKANIKAL DALAM BANGUNAN', kode:'RK004', klasifikasi:'MEKANIKAL / TATA LINGKUNGAN / ACPE', subklas:'Teknik Tata Udara & Refrigasi / Plumbing & Pompa / Proteksi Kebakaran / Transportasi Dalam Gedung / Teknik Mekanikal / Teknik Perpipaan'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA REKAYASA LAINNYA', kode:'RK005', klasifikasi:'SIPIL / TATA LINGKUNGAN / ACPE', subklas:'Bangunan Air Minum / Bangunan Air Limbah / Bangunan Persampahan / Geoteknik & Pondasi / Teknik Air Minum / Teknik Lingkungan / Teknik Air Limbah / Teknik Perpipaan / Teknik Persampahan'},
+  {type:'konsultan', kbli:'70209', subbidang:'JASA PELAYANAN STUDI INVESTASI INFRASTRUKTUR', kode:'RT001', klasifikasi:'MANAJEMEN PELAKSANAAN / SAINS & REKAYASA TEKNIK / ACPE', subklas:'Manajemen Konstruksi / Manajemen Proyek / Estimasi Biaya Konstruksi / Manajemen Aset Hasil Pekerjaan Konstruksi / Investasi Infrastruktur'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA REKAYASA KONSTRUKSI PEMBANGKIT, JARINGAN TRANSMISI, GARDU INDUK & DISTRIBUSI TENAGA LISTRIK', kode:'RT002', klasifikasi:'SIPIL / MEKANIKAL / MANAJEMEN PELAKSANAAN / SAINS & REKAYASA TEKNIK / ACPE', subklas:'Geoteknik & Pondasi / Bangunan Menara / Teknik Mekanikal / Keselamatan Konstruksi / Estimasi Biaya Konstruksi / Komputasi Konstruksi'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA REKAYASA KONSTRUKSI PROSES INDUSTRIAL, PRODUKSI & FASILITAS PRODUKSI', kode:'RT003', klasifikasi:'SIPIL / MEKANIKAL / TATA LINGKUNGAN / MANAJEMEN PELAKSANAAN / ACPE', subklas:'Geoteknik & Pondasi / Bangunan Menara / Bangunan Lepas Pantai / Proteksi Kebakaran / Transportasi Dalam Gedung / Teknik Mekanikal / Teknik Lifting / Teknik Lingkungan / Teknik Perpipaan / Keselamatan Konstruksi'},
+  {type:'konsultan', kbli:'71101', subbidang:'JASA PENGEMBANGAN PEMANFAATAN RUANG', kode:'AL001', klasifikasi:'SIPIL / TATA LINGKUNGAN / ARSITEK LANSKAP / PERENCANAAN WILAYAH & KOTA', subklas:'Geodesi / Teknik Lingkungan / Arsitek Lanskap / Perencanaan Wilayah / Perencanaan Kota'},
+  {type:'konsultan', kbli:'71101', subbidang:'JASA PENGEMBANGAN WILAYAH', kode:'AL002', klasifikasi:'SIPIL / TATA LINGKUNGAN / ARSITEK LANSKAP / PERENCANAAN WILAYAH & KOTA / ACPE', subklas:'Geodesi / Teknik Lingkungan / Arsitek Lanskap / Perencanaan Wilayah / Perencanaan Kota / Perancangan Kota'},
+  {type:'konsultan', kbli:'71101', subbidang:'JASA PENGEMBANGAN PERKOTAAN', kode:'AL003', klasifikasi:'SIPIL / TATA LINGKUNGAN / ARSITEK LANSKAP / PERENCANAAN WILAYAH & KOTA / ACPE', subklas:'Geodesi / Teknik Lingkungan / Arsitek Lanskap / Perencanaan Wilayah / Perencanaan Kota / Perancangan Kota'},
+  {type:'konsultan', kbli:'71101', subbidang:'JASA PENGEMBANGAN LINGKUNGAN BANGUNAN & LANSKAP', kode:'AL004', klasifikasi:'TATA LINGKUNGAN / ARSITEK LANSKAP / PERENCANAAN WILAYAH & KOTA / ACPE', subklas:'Geodesi / Teknik Lingkungan / Arsitek Lanskap / Perencanaan Wilayah / Perencanaan Kota / Perancangan Kota'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA PEMBUATAN PROSPEKTUS GEOLOGI & GEOFISIKA', kode:'IT001', klasifikasi:'SIPIL / TATA LINGKUNGAN / ACPE', subklas:'Geoteknik & Pondasi / Geodesi / Testing & Analisa Teknik / Teknik Lingkungan'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA KONSULTANSI ILMIAH & TEKNIS BAWAH TANAH', kode:'IT002', klasifikasi:'SIPIL / TATA LINGKUNGAN / ACPE', subklas:'Geoteknik & Pondasi / Geodesi / Testing & Analisis Teknik / Teknik Lingkungan'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA KONSULTANSI ILMIAH & TEKNIS PERMUKAAN TANAH & PEMBUATAN PETA', kode:'IT003', klasifikasi:'SIPIL / PERENCANAAN WILAYAH & KOTA / ACPE', subklas:'Geodesi / Testing & Analisis / Perencanaan Wilayah / Perencanaan Kota'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA KONSULTANSI ILMIAH & TEKNIS PRASARANA & SARANA UMUM', kode:'IT004', klasifikasi:'SIPIL / TATA LINGKUNGAN / PERENCANAAN WILAYAH & KOTA / ACPE', subklas:'Testing & Analisis Teknik / Teknik Air Minum / Teknik Lingkungan / Teknik Air Limbah / Perencanaan Wilayah / Perencanaan Kota'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA KONSULTANSI TEKNIS KONSTRUKSI SISTEM KENDALI LALU LINTAS', kode:'IT005', klasifikasi:'SIPIL / ACPE', subklas:'Jalan / Landasan Udara / Jalan Rel / Bangunan Menara / Bangunan Pelabuhan'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA KONSULTANSI TEKNIS KONSTRUKSI SISTEM KENDALI LALU LINTAS (B)', kode:'IT006', klasifikasi:'SIPIL / ACPE', subklas:'Jalan / Landasan Udara / Jalan Rel / Bangunan Menara / Bangunan Pelabuhan'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA KONSULTANSI ILMIAH & TEKNIS HIDROLIKA, HIDROLOGI & OCEANOGRAPHY', kode:'IT007', klasifikasi:'SIPIL / ACPE', subklas:'Air Tanah & Air Baku'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA KONSULTANSI ILMIAH & TEKNIS HIDROLIKA, HIDROLOGI & OCEANOGRAPHY (B)', kode:'IT008', klasifikasi:'SIPIL / ACPE', subklas:'Air Tanah & Air Baku'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA PENGUJIAN & ANALISIS TEKNIS GEOLOGI, GEOFISIKA & GEOKIMIA', kode:'AT001', klasifikasi:'SIPIL / ACPE', subklas:'Air Tanah & Air Baku / Geoteknik & Pondasi / Testing & Analisis Teknik'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA PENGUJIAN & ANALISIS TEKNIS KOMPOSISI & TINGKAT KEMURNIAN', kode:'AT002', klasifikasi:'SIPIL / TATA LINGKUNGAN / ACPE', subklas:'Testing & Analisis Teknik / Teknik Air Minum / Teknik Lingkungan / Teknik Air Limbah'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA PENGUJIAN HASIL PEKERJAAN KONSTRUKSI & FASILITAS LABORATORIUM', kode:'AT003', klasifikasi:'SIPIL / ACPE', subklas:'Material / Geoteknik & Pondasi / Testing & Analisis Teknik'},
+  {type:'konsultan', kbli:'71202', subbidang:'JASA PENGUJIAN & ANALISIS TEKNIS PARAMETER FISIKAL', kode:'AT004', klasifikasi:'SIPIL / ACPE', subklas:'Testing & Analisis Teknik'},
+  {type:'konsultan', kbli:'71102', subbidang:'JASA PENGUJIAN & ANALISIS TEKNIS HIDROLIKA, HIDROLOGI & OCEANOGRAPHY', kode:'AT005', klasifikasi:'SIPIL / ACPE', subklas:'Air Tanah & Air Baku'},
+  {type:'konsultan', kbli:'71202', subbidang:'JASA PENGUJIAN & ANALISIS AKUSTIK & VIBRATOR GEDUNG HUNIAN & NON HUNIAN', kode:'AT006', klasifikasi:'SIPIL / ACPE', subklas:'Gedung / Testing & Analisis Teknik'},
+  {type:'konsultan', kbli:'71202', subbidang:'JASA COMMISSIONING PROSES INDUSTRIAL', kode:'AT007', klasifikasi:'ARSITEKTUR / SIPIL / ARSITEKTUR LANSKAP & DESAIN INTERIOR / ASEAN Architect / ACPE', subklas:'Material / Testing dan Analisis Teknik / Teknik Mekanikal'},
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let currentFilter = 'all';
+let currentCategory = 'all';
+let searchQuery = '';
+
+// ============================================================
+// INIT COUNTS
+// ============================================================
+function initCounts() {
+  const k = data.filter(d=>d.type==='konstruksi').length;
+  const s = data.filter(d=>d.type==='spesialis').length;
+  const c = data.filter(d=>d.type==='konsultan').length;
+  document.getElementById('countKonstruksi').textContent = k;
+  document.getElementById('countSpesialis').textContent = s;
+  document.getElementById('countKonsultan').textContent = c;
+  document.getElementById('catAll').textContent = data.length;
+  document.getElementById('catKonstruksi').textContent = k;
+  document.getElementById('catSpesialis').textContent = s;
+  document.getElementById('catKonsultan').textContent = c;
+  document.getElementById('totalCount').textContent = data.length;
+}
+
+// ============================================================
+// SEARCH + FILTER
+// ============================================================
+function getFiltered() {
+  let q = searchQuery.trim().toLowerCase();
+  return data.filter(d => {
+    // category filter
+    if (currentCategory !== 'all' && d.type !== currentCategory) return false;
+    // if no query, show all
+    if (!q) return true;
+    // field filter
+    if (currentFilter === 'kbli') return d.kbli.toLowerCase().includes(q);
+    if (currentFilter === 'subbidang') return d.subbidang.toLowerCase().includes(q);
+    if (currentFilter === 'subklasifikasi') return d.subklas.toLowerCase().includes(q) || d.kode.toLowerCase().includes(q);
+    // all: search everything
+    return (
+      d.kbli.toLowerCase().includes(q) ||
+      d.subbidang.toLowerCase().includes(q) ||
+      d.kode.toLowerCase().includes(q) ||
+      d.subklas.toLowerCase().includes(q) ||
+      d.klasifikasi.toLowerCase().includes(q)
+    );
+  });
+}
+
+function hl(text, q) {
+  if (!q) return text;
+  const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+  return text.replace(re, '<mark>$1</mark>');
+}
+
+function renderCards(items) {
+  const grid = document.getElementById('resultsGrid');
+  document.getElementById('resultCount').textContent = items.length;
+
+  if (!items.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">Tidak ada hasil ditemukan</div>
+        <div class="empty-sub">Coba ubah kata kunci atau filter pencarian Anda</div>
+      </div>`;
+    return;
+  }
+
+  const q = searchQuery.trim().toLowerCase();
+  grid.innerHTML = items.map((d, i) => {
+    const typeLabel = {konstruksi:'Konstruksi', spesialis:'Spesialis', konsultan:'Konsultan'}[d.type];
+    const tags = d.subklas.split('/').map(t=>t.trim()).filter(Boolean);
+    return `
+      <div class="card type-${d.type}" style="animation-delay:${Math.min(i*0.03,0.4)}s">
+        <div class="card-header">
+          <span class="card-kbli">${hl(d.kbli, q)}</span>
+          <span class="card-type-badge badge-${d.type}">${typeLabel}</span>
+        </div>
+        <div class="card-title">${hl(d.subbidang, q)}</div>
+        <div class="card-code-row">
+          <span class="card-subkode">${hl(d.kode, q)}</span>
+        </div>
+        <div class="card-section">
+          <div class="card-section-label">Klasifikasi</div>
+          <div class="card-section-value">${hl(d.klasifikasi, q)}</div>
+        </div>
+        <div class="card-section">
+          <div class="card-section-label">Sub Klasifikasi</div>
+          <div class="tags">${tags.map(t=>`<span class="tag">${hl(t,q)}</span>`).join('')}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function update() {
+  const items = getFiltered();
+  renderCards(items);
+}
+
+// ============================================================
+// QUICK FILTERS (sidebar)
+// ============================================================
+function buildQuickFilters() {
+  const prefixes = ['BG','BS','PL','KK','KP','IN','PB','AR','RK','RT','AL','IT','AT','PA'];
+  const labels = {
+    BG:'Gedung', BS:'Bangunan Sipil', PL:'Pekerjaan Lahan',
+    KK:'Konstruksi Khusus', KP:'Prapabrikasi', IN:'Instalasi',
+    PB:'Pekerjaan Bangunan', AR:'Arsitektural', RK:'Rekayasa',
+    RT:'Rekayasa Teknologi', AL:'Area & Lanskap', IT:'Ilmiah & Teknis',
+    AT:'Analisis & Uji', PA:'Peralatan'
+  };
+  const container = document.getElementById('quickFilters');
+  container.innerHTML = prefixes.map(p => {
+    const count = data.filter(d=>d.kode.startsWith(p)).length;
+    if (!count) return '';
+    return `<button class="category-btn" onclick="quickFilter('${p}')" title="Filter kode ${p}">
+      <span class="cat-label" style="font-size:.78rem">${labels[p]||p}</span>
+      <span class="cat-count">${count}</span>
+    </button>`;
+  }).join('');
+}
+
+function quickFilter(prefix) {
+  document.getElementById('searchInput').value = prefix;
+  searchQuery = prefix;
+  currentFilter = 'subklasifikasi';
+  // update filter button
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-filter="subklasifikasi"]').classList.add('active');
+  update();
+}
+
+// ============================================================
+// EVENTS
+// ============================================================
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  update();
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    update();
+  });
+});
+
+document.querySelectorAll('.category-btn[data-cat]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.category-btn[data-cat]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCategory = btn.dataset.cat;
+    update();
+  });
+});
+
+// ============================================================
+// BOOT
+// ============================================================
+initCounts();
+buildQuickFilters();
+update();
+</script>
+</body>
+</html>
